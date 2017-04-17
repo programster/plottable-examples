@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Basic Plottable Example</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="plottable.css" />
+         
+        <!-- include the outdated version of d3 which plottable requires -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js" ></script>
+        
+        <!-- Include plottable -->
+        <script type="text/javascript" src="plottable.min.js" ></script>
+        <link rel="stylesheet" type="text/css" href="plottable.css" />
+    </head>
+    <body>
+        <svg id="example" style="height:500px; width:100%"></svg>
+        <script type="text/javascript">
+            var msPerDay = 86400000;
+            var dataObjects;
+            var lineRenderer;
+
+            var makeLinearData = function(points, step, slope) {
+                var data = [];
+                
+                for (var i = 0; i < points * step; i += step) 
+                {
+                  data.push({x: new Date(i * msPerDay), y: i * slope});
+                }
+                
+                return data;
+            };
+
+            var makeExponentialData = function(points, step, power) {
+              var data = [];
+              
+                for (var i = 0; i < points * step; i += step) 
+                {
+                    data.push({x: new Date(i * msPerDay), y: Math.pow(i, power)});
+                }
+                
+                return data;
+            };
+
+            var makeOscillatingData = function(points, step) {
+                var data = [];
+                
+                for (var i = 0; i < points * step; i += step) 
+                {
+                   data.push({x: new Date(i * msPerDay), y: Math.sin(i) * 4 + 8});
+                }
+                
+                return data;
+            };
+
+            var includeDatasets = function() {
+                var ds = [];
+                
+                dataObjects.forEach(function(dataObject) {
+                    if (dataObject.include === true) 
+                    {
+                        ds.push(dataObject.dataset);
+                    }
+                });
+                
+                lineRenderer.datasets(ds);
+            };
+
+            var makeLabel = function(string) {
+                return new Plottable.Components.Label(string, 0)
+                .addClass("selected")
+                .xAlignment("left");
+            };
+
+            var toggle = function(label, object) {
+                if (label.hasClass("selected")) 
+                {
+                    label.text("☐" + label.text().slice(1, label.text().length));
+                    label.removeClass("selected");
+                    object.include = false;
+                }
+                else 
+                {
+                    label.text("☑" + label.text().slice(1, label.text().length));
+                    label.addClass("selected");
+                    object.include = true;
+                }
+                
+                includeDatasets();
+            };
+
+            var linearDataObj = {};
+            linearDataObj.data = makeLinearData(2, 20, 2);
+            linearDataObj.color = "#34b24c";
+            
+            var exponentialDataObj = {};
+            exponentialDataObj.data = makeExponentialData(20, 1, 1.5);
+            exponentialDataObj.color = "#ffa500";
+            
+            var oscilattingDataObj = {};
+            oscilattingDataObj.data = makeOscillatingData(50, .4);
+            oscilattingDataObj.color = "#551a8b";
+            dataObjects = [linearDataObj, exponentialDataObj, oscilattingDataObj];
+
+            dataObjects.forEach(function(dataObject) {
+                dataObject.dataset = new Plottable.Dataset(dataObject.data, {"color": dataObject.color});
+                dataObject.include = true;
+            });
+
+            var xScale = new Plottable.Scales.Time();
+            var xAxis = new Plottable.Axes.Time(xScale, "bottom");
+
+            var yScale = new Plottable.Scales.Linear().domain([0, 40]);
+            var yAxis = new Plottable.Axes.Numeric(yScale, "left");
+
+            lineRenderer = new Plottable.Plots.Line()
+                .x(function(d) { return d.x; }, xScale)
+                .y(function(d) { return d.y; }, yScale)
+                .attr("stroke", function(d, i, ds) { return ds.metadata().color; });
+        
+            includeDatasets();
+
+            var linLabel = makeLabel("☑ linear dataset");
+            var expLabel = makeLabel("☑ exponential dataset");
+            var oscLabel = makeLabel("☑ oscillating dataset");
+
+            var labels = new Plottable.Components.Table([[linLabel], [expLabel], [oscLabel]]);
+            
+            
+
+            new Plottable.Interactions.Click()
+                .onClick(function() {
+                    toggle(linLabel, linearDataObj)
+                })
+                .attachTo(linLabel);
+        
+            new Plottable.Interactions.Click()
+                .onClick(function() {
+                  toggle(expLabel, exponentialDataObj)
+                })
+                .attachTo(expLabel);
+        
+            var clickHandlerOscillating = new Plottable.Interactions.Click();
+            
+            clickHandlerOscillating.onClick(function() {
+                toggle(oscLabel, oscilattingDataObj);
+            });
+            
+            clickHandlerOscillating.attachTo(oscLabel);
+            
+            var areaChart = new Plottable.Components.Table(
+                [
+                    [null,        labels],
+                    [yAxis, lineRenderer],
+                    [null,         xAxis]
+                ]
+            );
+
+            areaChart.renderTo("svg#example");
+        </script>
+    </body>
+</html>
+
